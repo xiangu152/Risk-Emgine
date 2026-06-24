@@ -1,3 +1,36 @@
-.omc
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
 .venv
-__pycache__
+
+# OMC internal state
+.omc/
+
+# Project planning (not module deliverables)
+TODO.md
+
+# Stale eval scripts (replaced by evaluate.py)
+analyze_data.py
+evaluate_on_real_data.py
+evaluate_split.py
+evaluate_hybrid.py
+calibrate_thresholds.py
+data_quality_report.py
+benchmark.py
+
+# Data & model files (generated, not committed)
+data/
+
+# Office / doc files (not code)
+*.docx
+
+CLAUDE.md
+
+# Generated model files (not the committed defaults in models/)
+data/model/*.pkl

@@ -1,0 +1,1 @@
+["ip_change_freq", "tx_freq", "amount_anomaly_score", "behavior_time_anomaly", "tx_velocity_5min", "tx_velocity_1h", "ip_switch_24h", "tx_interval_mean_sec", "tx_burst_ratio", "amount_user_deviation", "amount_user_max_ratio", "night_tx_ratio", "odd_hour_tx_ratio", "device_ip_risk", "velocity_amount", "amount_exposure"]
