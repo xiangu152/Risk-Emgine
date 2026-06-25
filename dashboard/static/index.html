@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>风控引擎可视化面板</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+/* ═══ Reset & Variables ═══════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1724;--bg2:#1a2332;--bg3:#243044;--bg4:#2d3b50;
+  --text:#e8ecf1;--text2:#8899aa;--text3:#5a6a7a;
+  --accent:#3b82f6;--accent2:#60a5fa;
+  --green:#22c55e;--yellow:#eab308;--red:#ef4444;
+  --orange:#f97316;--purple:#a855f7;
+  --radius:10px;--shadow:0 4px 24px rgba(0,0,0,.3);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+a{color:var(--accent2);text-decoration:none}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ═══ Sidebar ═════════════════════════════════════════════ */
+.sidebar{width:220px;background:var(--bg2);display:flex;flex-direction:column;border-right:1px solid var(--bg3);flex-shrink:0}
+.sidebar .logo{padding:24px 20px 20px;border-bottom:1px solid var(--bg3)}
+.sidebar .logo h1{font-size:18px;color:var(--accent2);display:flex;align-items:center;gap:8px}
+.sidebar .logo h1 span{font-size:22px}
+.sidebar nav{flex:1;padding:12px 10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;cursor:pointer;color:var(--text2);transition:all .2s;font-size:14px;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item .icon{font-size:18px;width:24px;text-align:center}
+.sidebar .version{padding:16px 20px;font-size:11px;color:var(--text3);border-top:1px solid var(--bg3)}
+
+/* ═══ Main ════════════════════════════════════════════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.header{padding:20px 28px 16px;background:var(--bg2);border-bottom:1px solid var(--bg3);display:flex;justify-content:space-between;align-items:center}
+.header h2{font-size:20px;font-weight:600}
+.header .subtitle{font-size:13px;color:var(--text2);margin-top:2px}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ═══ Cards ═══════════════════════════════════════════════ */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px;transition:transform .2s}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-card .label{font-size:13px;color:var(--text2);margin-bottom:8px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .sub{font-size:12px;color:var(--text3);margin-top:4px}
+.stat-card.green .value{color:var(--green)}
+.stat-card.yellow .value{color:var(--yellow)}
+.stat-card.red .value{color:var(--red)}
+.stat-card.blue .value{color:var(--accent2)}
+
+/* ═══ Chart containers ════════════════════════════════════ */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-box{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px}
+.chart-box h3{font-size:15px;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:8px}
+.chart-box h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.chart-area{width:100%;height:320px}
+.chart-area.tall{height:400px}
+
+/* ═══ Table ═══════════════════════════════════════════════ */
+.table-box{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px;margin-bottom:24px}
+.table-box h3{font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;color:var(--text2);border-bottom:2px solid var(--bg3);font-weight:500;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--bg3);white-space:nowrap}
+tr:hover td{background:var(--bg3)}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-low{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-medium{background:rgba(234,179,8,.15);color:var(--yellow)}
+.badge-high{background:rgba(239,68,68,.15);color:var(--red)}
+.score-bar{height:6px;border-radius:3px;background:var(--bg4);position:relative;min-width:80px}
+.score-bar .fill{height:100%;border-radius:3px;position:absolute;left:0;top:0}
+.clickable{cursor:pointer}
+.clickable:hover td{color:var(--accent2)}
+
+/* ═══ Upload ══════════════════════════════════════════════ */
+.upload-zone{border:2px dashed var(--bg4);border-radius:var(--radius);padding:60px;text-align:center;transition:all .3s;cursor:pointer;background:var(--bg2)}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(59,130,246,.05)}
+.upload-zone .icon{font-size:48px;margin-bottom:16px}
+.upload-zone h3{font-size:18px;margin-bottom:8px}
+.upload-zone p{color:var(--text2);font-size:13px}
+.upload-zone input{display:none}
+
+/* ═══ User Detail ═════════════════════════════════════════ */
+.detail-header{display:flex;gap:20px;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap}
+.detail-info{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px;min-width:280px}
+.detail-info h3{font-size:20px;margin-bottom:4px}
+.detail-info .meta{color:var(--text2);font-size:13px;margin-bottom:12px}
+.detail-info .scores{display:flex;gap:16px}
+.detail-info .score-item{text-align:center}
+.detail-info .score-item .val{font-size:24px;font-weight:700}
+.detail-info .score-item .lbl{font-size:11px;color:var(--text2);margin-top:2px}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;color:var(--text);cursor:pointer;font-size:13px;margin-bottom:16px;transition:all .2s}
+.back-btn:hover{background:var(--bg4)}
+.rule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.rule-card{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--bg3);font-size:13px}
+.rule-card.hit{border-left:3px solid var(--red);background:rgba(239,68,68,.08)}
+.rule-card.miss{border-left:3px solid var(--bg4);opacity:.5}
+.rule-card .status{font-size:16px}
+.timeline-item{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid var(--bg3);font-size:13px}
+.timeline-item .time{color:var(--text2);min-width:140px;font-family:monospace;font-size:12px}
+.timeline-item .type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;min-width:70px;text-align:center}
+.timeline-item .type-login{background:rgba(59,130,246,.15);color:var(--accent2)}
+.timeline-item .type-transaction{background:rgba(234,179,8,.15);color:var(--yellow)}
+.timeline-item .type-browse{background:rgba(34,197,94,.15);color:var(--green)}
+.timeline-item .type-search{background:rgba(168,85,247,.15);color:var(--purple)}
+.timeline-item .type-other{background:var(--bg4);color:var(--text2)}
+.timeline-item .log{color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timeline-item .amount{color:var(--orange);font-weight:600;min-width:80px;text-align:right}
+
+/* ═══ Search ══════════════════════════════════════════════ */
+.search-bar{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+.search-bar input{flex:1;padding:10px 14px;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;color:var(--text);font-size:13px;outline:none}
+.search-bar input:focus{border-color:var(--accent)}
+.search-bar select{padding:10px 14px;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;color:var(--text);font-size:13px;outline:none}
+
+/* ═══ Empty / Loading ═════════════════════════════════════ */
+.empty-state{text-align:center;padding:80px 20px;color:var(--text2)}
+.empty-state .icon{font-size:64px;margin-bottom:16px;opacity:.5}
+.empty-state h3{font-size:18px;margin-bottom:8px;color:var(--text)}
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--text2)}
+.spinner{width:20px;height:20px;border:2px solid var(--bg4);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══ Page visibility ═════════════════════════════════════ */
+.page{display:none}
+.page.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="logo">
+    <h1><span>🛡️</span> 风控引擎</h1>
+  </div>
+  <nav>
+    <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span> 风险概览</div>
+    <div class="nav-item" data-page="users"><span class="icon">👥</span> 账户列表</div>
+    <div class="nav-item" data-page="features"><span class="icon">🔬</span> 特征分析</div>
+    <div class="nav-item" data-page="upload"><span class="icon">📤</span> 数据上传</div>
+  </nav>
+  <div class="version">v1.4.0 · 23特征 · 16规则 · Calibrated RF</div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+  <div class="header">
+    <div>
+      <h2 id="page-title">风险概览</h2>
+      <div class="subtitle" id="page-subtitle">上传 CSV 数据文件开始分析</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- ═══ Dashboard Page ════════════════════════════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-cards" id="stat-cards"></div>
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3><span class="dot"></span>风险等级分布</h3>
+          <div class="chart-area" id="chart-pie"></div>
+        </div>
+        <div class="chart-box">
+          <h3><span class="dot"></span>评分分布</h3>
+          <div class="chart-area" id="chart-histogram"></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3><span class="dot"></span>规则分 vs ML 分</h3>
+          <div class="chart-area" id="chart-scatter"></div>
+        </div>
+        <div class="chart-box">
+          <h3><span class="dot"></span>Top 10 高风险账户</h3>
+          <div class="chart-area" id="chart-top10"></div>
+        </div>
+      </div>
+      <div class="table-box">
+        <h3>⚠️ 高风险账户明细</h3>
+        <table>
+          <thead><tr><th>账户</th><th>姓名</th><th>地区</th><th>规则分</th><th>ML分</th><th>混合分</th><th>等级</th><th>命中规则</th><th>交易数</th></tr></thead>
+          <tbody id="high-risk-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Users Page ════════════════════════════════════ -->
+    <div class="page" id="page-users">
+      <div class="search-bar">
+        <input type="text" id="user-search" placeholder="🔍 搜索账户ID或姓名...">
+        <select id="level-filter">
+          <option value="">全部等级</option>
+          <option value="HIGH">🔴 高风险</option>
+          <option value="MEDIUM">🟡 中风险</option>
+          <option value="LOW">🟢 低风险</option>
+        </select>
+      </div>
+      <div class="table-box">
+        <table>
+          <thead><tr><th>账户</th><th>姓名</th><th>地区</th><th>规则分</th><th>ML分</th><th>混合分</th><th>等级</th><th>命中规则</th><th>交易数</th><th>标签</th></tr></thead>
+          <tbody id="users-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ User Detail Page ══════════════════════════════ -->
+    <div class="page" id="page-detail">
+      <button class="back-btn" onclick="navigateTo('users')">← 返回列表</button>
+      <div id="detail-content"></div>
+    </div>
+
+    <!-- ═══ Features Page ═════════════════════════════════ -->
+    <div class="page" id="page-features">
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3><span class="dot"></span>特征权重分布</h3>
+          <div class="chart-area tall" id="chart-weights"></div>
+        </div>
+        <div class="chart-box">
+          <h3><span class="dot"></span>各等级特征雷达图</h3>
+          <div class="chart-area tall" id="chart-radar-avg"></div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <h3><span class="dot"></span>特征分布对比（按风险等级）</h3>
+        <div class="search-bar">
+          <select id="feature-select"></select>
+        </div>
+        <div class="chart-area" id="chart-feature-dist"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Upload Page ════════════════════════════════════ -->
+    <div class="page" id="page-upload">
+      <div class="upload-zone" id="upload-zone">
+        <div class="icon">📁</div>
+        <h3>拖拽 CSV 文件到此处，或点击选择</h3>
+        <p>支持行为日志 CSV 格式（account_id, type, machine, ip_address, pub_time, ...）</p>
+        <input type="file" id="file-input" accept=".csv">
+      </div>
+      <div id="upload-status" style="margin-top:16px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   风控引擎可视化面板 — 前端逻辑
+   ═══════════════════════════════════════════════════════════ */
+
+const LEVEL_COLORS = { HIGH: '#ef4444', MEDIUM: '#eab308', LOW: '#22c55e' };
+const LEVEL_LABELS = { HIGH: '高风险', MEDIUM: '中风险', LOW: '低风险' };
+let allUsers = [];
+let featureWeights = {};
+let currentDetail = null;
+
+// ── Navigation ────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.page));
+});
+
+function navigateTo(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById(`page-${page}`);
+  if (el) el.classList.add('active');
+
+  const titles = { dashboard: '风险概览', users: '账户列表', features: '特征分析', upload: '数据上传', detail: '用户详情' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+
+  if (page === 'features' && allUsers.length) loadFeaturePage();
+}
+
+// ── Upload ────────────────────────────────────────────────
+const uploadZone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) uploadFile(fileInput.files[0]); });
+
+async function uploadFile(file) {
+  const status = document.getElementById('upload-status');
+  status.innerHTML = '<div class="loading"><div class="spinner"></div> 正在处理数据...</div>';
+
+  const form = new FormData();
+  form.append('file', file);
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '上传失败');
+
+    status.innerHTML = `<div style="color:var(--green)">✅ ${data.filename} 处理完成：${data.total_accounts} 个账户，${data.total_records} 条记录</div>`;
+
+    // Load all data
+    await loadAllData();
+    navigateTo('dashboard');
+  } catch (e) {
+    status.innerHTML = `<div style="color:var(--red)">❌ ${e.message}</div>`;
+  }
+}
+
+// ── Data Loading ──────────────────────────────────────────
+async function loadAllData() {
+  const [usersRes, weightsRes] = await Promise.all([
+    fetch('/api/users'),
+    fetch('/api/features/weights'),
+  ]);
+  allUsers = await usersRes.json();
+  featureWeights = await weightsRes.json();
+
+  renderDashboard();
+  renderUsersTable();
+  document.getElementById('page-subtitle').textContent =
+    `${allUsers.length} 个账户 · ${allUsers.filter(u => u.hybrid_level === 'HIGH').length} 个高风险`;
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+async function renderDashboard() {
+  const res = await fetch('/api/overview');
+  const ov = await res.json();
+  if (ov.empty) return;
+
+  // Stat cards
+  const highN = ov.level_distribution.HIGH || 0;
+  const medN = ov.level_distribution.MEDIUM || 0;
+  const lowN = ov.level_distribution.LOW || 0;
+  document.getElementById('stat-cards').innerHTML = `
+    <div class="stat-card blue"><div class="label">总账户数</div><div class="value">${ov.total_accounts}</div><div class="sub">${ov.total_records} 条行为记录</div></div>
+    <div class="stat-card red"><div class="label">高风险</div><div class="value">${highN}</div><div class="sub">${(highN/ov.total_accounts*100).toFixed(1)}%</div></div>
+    <div class="stat-card yellow"><div class="label">中风险</div><div class="value">${medN}</div><div class="sub">${(medN/ov.total_accounts*100).toFixed(1)}%</div></div>
+    <div class="stat-card green"><div class="label">低风险</div><div class="value">${lowN}</div><div class="sub">${(lowN/ov.total_accounts*100).toFixed(1)}%</div></div>
+    <div class="stat-card blue"><div class="label">平均分</div><div class="value">${ov.avg_score}</div><div class="sub">范围 ${ov.min_score} ~ ${ov.max_score}</div></div>
+  `;
+
+  // Pie chart
+  echarts.init(document.getElementById('chart-pie'), null, {renderer:'canvas'}).setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 10, textStyle: { color: '#8899aa' } },
+    series: [{
+      type: 'pie', radius: ['40%', '70%'], center: ['50%', '45%'],
+      itemStyle: { borderRadius: 6, borderColor: '#1a2332', borderWidth: 2 },
+      label: { show: true, formatter: '{b}\n{c}个', color: '#e8ecf1' },
+      data: [
+        { value: lowN, name: '低风险', itemStyle: { color: '#22c55e' } },
+        { value: medN, name: '中风险', itemStyle: { color: '#eab308' } },
+        { value: highN, name: '高风险', itemStyle: { color: '#ef4444' } },
+      ]
+    }]
+  });
+
+  // Histogram
+  const bins = ['0-10','10-20','20-30','30-40','40-50','50-60','60-70','70-80','80-90','90-100'];
+  const binCounts = new Array(10).fill(0);
+  allUsers.forEach(u => {
+    const idx = Math.min(Math.floor(u.hybrid_score / 10), 9);
+    binCounts[idx]++;
+  });
+  echarts.init(document.getElementById('chart-histogram'), null, {renderer:'canvas'}).setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: bins, axisLabel: { color: '#8899aa' }, axisLine: { lineStyle: { color: '#2d3b50' } } },
+    yAxis: { type: 'value', axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    series: [{
+      type: 'bar', data: binCounts.map((v, i) => ({
+        value: v,
+        itemStyle: { color: i < 3 ? '#22c55e' : i < 7 ? '#eab308' : '#ef4444', borderRadius: [4,4,0,0] }
+      })),
+      barWidth: '60%',
+    }]
+  });
+
+  // Scatter: rule vs ML
+  echarts.init(document.getElementById('chart-scatter'), null, {renderer:'canvas'}).setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: p => `${p.data[2]}<br>规则分: ${p.data[0]}<br>ML分: ${p.data[1]}`
+    },
+    xAxis: { type: 'value', name: '规则分', nameTextStyle: { color: '#8899aa' }, axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    yAxis: { type: 'value', name: 'ML分', nameTextStyle: { color: '#8899aa' }, axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    series: [{
+      type: 'scatter', symbolSize: 10,
+      data: allUsers.map(u => [u.rule_score, u.ml_score, u.account_id]),
+      itemStyle: { color: p => LEVEL_COLORS[allUsers.find(u => u.account_id === p.data[2])?.hybrid_level] || '#3b82f6' }
+    }]
+  });
+
+  // Top 10 bar
+  const top10 = [...allUsers].sort((a, b) => b.hybrid_score - a.hybrid_score).slice(0, 10);
+  echarts.init(document.getElementById('chart-top10'), null, {renderer:'canvas'}).setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 100, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: 'value', axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    yAxis: {
+      type: 'category',
+      data: top10.map(u => u.account_name || u.account_id).reverse(),
+      axisLabel: { color: '#e8ecf1', fontSize: 12 }
+    },
+    series: [{
+      type: 'bar',
+      data: top10.map(u => ({
+        value: u.hybrid_score,
+        itemStyle: { color: LEVEL_COLORS[u.hybrid_level], borderRadius: [0,4,4,0] }
+      })).reverse(),
+      barWidth: '50%',
+      label: { show: true, position: 'right', color: '#e8ecf1', formatter: '{c}' }
+    }]
+  });
+
+  // High risk table
+  const highRisk = allUsers.filter(u => u.hybrid_level === 'HIGH').sort((a,b) => b.hybrid_score - a.hybrid_score);
+  document.getElementById('high-risk-table').innerHTML = highRisk.map(u => `
+    <tr class="clickable" onclick="showDetail('${u.account_id}')">
+      <td>${u.account_id}</td>
+      <td>${u.account_name}</td>
+      <td>${u.region}</td>
+      <td>${u.rule_score.toFixed(1)}</td>
+      <td>${u.ml_score.toFixed(1)}</td>
+      <td><strong>${u.hybrid_score.toFixed(1)}</strong></td>
+      <td><span class="badge badge-high">HIGH</span></td>
+      <td>${u.fired_count}条</td>
+      <td>${u.tx_count}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Users Table ───────────────────────────────────────────
+function renderUsersTable(filter = '', level = '') {
+  let users = allUsers;
+  if (filter) {
+    const q = filter.toLowerCase();
+    users = users.filter(u => u.account_id.toLowerCase().includes(q) || u.account_name.toLowerCase().includes(q));
+  }
+  if (level) users = users.filter(u => u.hybrid_level === level);
+
+  document.getElementById('users-table').innerHTML = users.map(u => {
+    const lc = u.hybrid_level.toLowerCase();
+    const labelMap = { 0: '正常', 1: '可疑', 2: '欺诈' };
+    return `
+    <tr class="clickable" onclick="showDetail('${u.account_id}')">
+      <td>${u.account_id}</td>
+      <td>${u.account_name}</td>
+      <td>${u.region}</td>
+      <td>${u.rule_score.toFixed(1)}</td>
+      <td>${u.ml_score.toFixed(1)}</td>
+      <td><strong>${u.hybrid_score.toFixed(1)}</strong></td>
+      <td><span class="badge badge-${lc}">${LEVEL_LABELS[u.hybrid_level]}</span></td>
+      <td>${u.fired_count}条</td>
+      <td>${u.tx_count}</td>
+      <td>${labelMap[u.label] ?? u.label}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('user-search').addEventListener('input', e => {
+  renderUsersTable(e.target.value, document.getElementById('level-filter').value);
+});
+document.getElementById('level-filter').addEventListener('change', e => {
+  renderUsersTable(document.getElementById('user-search').value, e.target.value);
+});
+
+// ── User Detail ───────────────────────────────────────────
+async function showDetail(accountId) {
+  navigateTo('detail');
+  const container = document.getElementById('detail-content');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div> 加载中...</div>';
+
+  try {
+    const res = await fetch(`/api/users/${accountId}`);
+    const user = await res.json();
+    currentDetail = user;
+    renderDetail(user);
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><h3>加载失败</h3><p>${e.message}</p></div>`;
+  }
+}
+
+function renderDetail(user) {
+  const container = document.getElementById('detail-content');
+  const lc = user.hybrid_level.toLowerCase();
+  const labelMap = { 0: '正常', 1: '可疑', 2: '欺诈' };
+
+  container.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-info">
+        <h3>${user.account_name} <span style="color:var(--text2);font-size:14px">${user.account_id}</span></h3>
+        <div class="meta">📍 ${user.region} · 标签: ${labelMap[user.label] ?? user.label} · ${user.tx_count}笔交易 · ${user.fired_count}条规则命中</div>
+        <div class="scores">
+          <div class="score-item"><div class="val" style="color:${LEVEL_COLORS[user.rule_level]}">${user.rule_score.toFixed(1)}</div><div class="lbl">规则分</div></div>
+          <div class="score-item"><div class="val" style="color:var(--accent2)">${user.ml_score.toFixed(1)}</div><div class="lbl">ML分</div></div>
+          <div class="score-item"><div class="val" style="color:${LEVEL_COLORS[user.hybrid_level]}">${user.hybrid_score.toFixed(1)}</div><div class="lbl">混合分</div></div>
+          <div class="score-item"><div class="val"><span class="badge badge-${lc}">${LEVEL_LABELS[user.hybrid_level]}</span></div><div class="lbl">风险等级</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-box">
+        <h3><span class="dot"></span>23维特征雷达图</h3>
+        <div class="chart-area tall" id="detail-radar"></div>
+      </div>
+      <div class="chart-box">
+        <h3><span class="dot"></span>评分对比</h3>
+        <div class="chart-area tall" id="detail-scores"></div>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <h3>🔍 16条规则命中状态</h3>
+      <div class="rule-grid" id="detail-rules"></div>
+    </div>
+
+    <div class="table-box">
+      <h3>📋 行为时间线（最近50条）</h3>
+      <div id="detail-timeline" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+  `;
+
+  // Radar chart
+  const featNames = Object.keys(featureWeights);
+  const featLabels = {
+    device_reuse_ratio:'设备复用', ip_change_freq:'IP变更', tx_freq:'交易频率',
+    login_fail_ratio:'登录失败', amount_anomaly_score:'金额异常', behavior_time_anomaly:'行为耗时',
+    multi_region_risk:'多地区', tx_velocity_5min:'5min交易', tx_velocity_1h:'1h交易',
+    device_switch_24h:'设备切换', ip_switch_24h:'IP切换', tx_interval_mean_sec:'交易间隔',
+    tx_burst_ratio:'突发比例', amount_user_deviation:'金额偏离', amount_user_max_ratio:'最大金额',
+    night_tx_ratio:'凌晨交易', odd_hour_tx_ratio:'非工作时间', device_ip_risk:'设备IP风险',
+    night_automation:'夜间自动化', velocity_amount:'速度金额', burst_max_ratio:'突发最大',
+    velocity_ratio:'速度比', amount_exposure:'金额暴露'
+  };
+  const featValues = featNames.map(k => Math.min(user.features[k] || 0, 1));
+  const avgByLevel = {};
+  ['LOW','MEDIUM','HIGH'].forEach(lv => {
+    const group = allUsers.filter(u => u.hybrid_level === lv);
+    avgByLevel[lv] = featNames.map(k => {
+      const vals = group.map(u => Math.min(u.features[k] || 0, 1));
+      return vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : 0;
+    });
+  });
+
+  echarts.init(document.getElementById('detail-radar'), null, {renderer:'canvas'}).setOption({
+    tooltip: {
+      confine: true,
+      trigger: 'item',
+      formatter: function(param) {
+        var vals = param.value || [];
+        var labels = featNames.map(function(k){ return featLabels[k]||k; });
+        var html = '<b style="font-size:13px">' + param.name + '</b><table style="margin-top:4px;border-collapse:collapse;font-size:11px">';
+        for (var i = 0; i < labels.length; i += 2) {
+          html += '<tr><td style="padding:1px 8px 1px 0;color:#8899aa">' + labels[i] + '</td><td style="padding:1px 12px 1px 0;font-weight:600">' + (vals[i]||0).toFixed(2) + '</td>';
+          if (i+1 < labels.length) {
+            html += '<td style="padding:1px 8px 1px 0;color:#8899aa">' + labels[i+1] + '</td><td style="padding:1px 0;font-weight:600">' + (vals[i+1]||0).toFixed(2) + '</td>';
+          }
+          html += '</tr>';
+        }
+        return html + '</table>';
+      },
+    },
+    legend: { right: 10, top: 'middle', orient: 'vertical', data: ['当前用户','LOW均值','MEDIUM均值','HIGH均值'], textStyle: { color: '#8899aa', fontSize: 11 } },
+    radar: {
+      indicator: featNames.map(k => ({ name: featLabels[k]||k, max: 1 })),
+      center: ['42%', '50%'],
+      radius: '58%',
+      axisName: { color: '#8899aa', fontSize: 9 },
+      splitArea: { areaStyle: { color: ['rgba(59,130,246,.02)','rgba(59,130,246,.05)'] } },
+      splitLine: { lineStyle: { color: '#243044' } },
+      axisLine: { lineStyle: { color: '#2d3b50' } },
+    },
+    series: [{
+      type: 'radar',
+      data: [
+        { value: featValues, name: '当前用户', areaStyle: { color: 'rgba(59,130,246,.2)' }, lineStyle: { color: '#3b82f6', width: 2 }, itemStyle: { color: '#3b82f6' } },
+        { value: avgByLevel.LOW, name: 'LOW均值', lineStyle: { color: '#22c55e', type: 'dashed', width: 1 }, symbol: 'none' },
+        { value: avgByLevel.MEDIUM, name: 'MEDIUM均值', lineStyle: { color: '#eab308', type: 'dashed', width: 1 }, symbol: 'none' },
+        { value: avgByLevel.HIGH, name: 'HIGH均值', lineStyle: { color: '#ef4444', type: 'dashed', width: 1 }, symbol: 'none' },
+      ]
+    }]
+  });
+
+  // Score comparison
+  echarts.init(document.getElementById('detail-scores'), null, {renderer:'canvas'}).setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 60, right: 20, top: 20, bottom: 40 },
+    xAxis: { type: 'category', data: ['规则分','ML分','混合分'], axisLabel: { color: '#e8ecf1' } },
+    yAxis: { type: 'value', max: 100, axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    series: [{
+      type: 'bar',
+      data: [
+        { value: user.rule_score, itemStyle: { color: LEVEL_COLORS[user.rule_level], borderRadius: [6,6,0,0] } },
+        { value: user.ml_score, itemStyle: { color: '#60a5fa', borderRadius: [6,6,0,0] } },
+        { value: user.hybrid_score, itemStyle: { color: LEVEL_COLORS[user.hybrid_level], borderRadius: [6,6,0,0] } },
+      ],
+      barWidth: '40%',
+      label: { show: true, position: 'top', color: '#e8ecf1', fontSize: 14, fontWeight: 'bold' }
+    }]
+  });
+
+  // Rules
+  const allRuleNames = [
+    'R1_设备农场+高频','R2_IP撞库','R3_极端金额','R4_暴力破解','R5_设备共享',
+    'R6_账户盗用','R7_设备农场撞库','R8_洗钱','R9_自动化脚本','R10_多地区',
+    'R11_交易爆发','R12_账户接管变现','R13_自动化间隔','R14_超大额','R15_批量操作','R16_凌晨异常'
+  ];
+  document.getElementById('detail-rules').innerHTML = allRuleNames.map(r => {
+    const hit = user.fired_rules.includes(r);
+    return `<div class="rule-card ${hit?'hit':'miss'}"><span class="status">${hit?'🔴':'⚪'}</span>${r}</div>`;
+  }).join('');
+
+  // Timeline
+  const typeColors = { login:'login', transaction:'transaction', browse:'browse', search:'search' };
+  document.getElementById('detail-timeline').innerHTML = user.timeline.map(t => {
+    const tc = typeColors[t.type] || 'other';
+    return `<div class="timeline-item">
+      <span class="time">${t.time.replace('T',' ').replace('+00:00','').slice(0,19)}</span>
+      <span class="type-badge type-${tc}">${t.type}</span>
+      <span class="log">${t.behavior_log || t.behavior_type}</span>
+      ${t.amount ? `<span class="amount">¥${t.amount}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Features Page ─────────────────────────────────────────
+function loadFeaturePage() {
+  // Feature weights bar
+  const names = Object.keys(featureWeights);
+  const labels = {
+    device_reuse_ratio:'设备复用', ip_change_freq:'IP变更', tx_freq:'交易频率',
+    login_fail_ratio:'登录失败', amount_anomaly_score:'金额异常', behavior_time_anomaly:'行为耗时',
+    multi_region_risk:'多地区', tx_velocity_5min:'5min交易', tx_velocity_1h:'1h交易',
+    device_switch_24h:'设备切换', ip_switch_24h:'IP切换', tx_interval_mean_sec:'交易间隔',
+    tx_burst_ratio:'突发比例', amount_user_deviation:'金额偏离', amount_user_max_ratio:'最大金额',
+    night_tx_ratio:'凌晨交易', odd_hour_tx_ratio:'非工作时间', device_ip_risk:'设备IP风险',
+    night_automation:'夜间自动化', velocity_amount:'速度金额', burst_max_ratio:'突发最大',
+    velocity_ratio:'速度比', amount_exposure:'金额暴露'
+  };
+  const weights = names.map(k => featureWeights[k]);
+
+  echarts.init(document.getElementById('chart-weights'), null, {renderer:'canvas'}).setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 110, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: 'value', axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    yAxis: { type: 'category', data: names.map(k => labels[k]||k).reverse(), axisLabel: { color: '#e8ecf1', fontSize: 11 } },
+    series: [{
+      type: 'bar',
+      data: weights.map(w => ({ value: w, itemStyle: { color: w > 0.06 ? '#ef4444' : w > 0.04 ? '#eab308' : '#3b82f6', borderRadius: [0,4,4,0] } })).reverse(),
+      barWidth: '50%',
+      label: { show: true, position: 'right', color: '#8899aa', formatter: '{c}' }
+    }]
+  });
+
+  // Radar avg by level
+  const avgByLevel = {};
+  ['LOW','MEDIUM','HIGH'].forEach(lv => {
+    const group = allUsers.filter(u => u.hybrid_level === lv);
+    avgByLevel[lv] = names.map(k => {
+      const vals = group.map(u => Math.min(u.features[k] || 0, 1));
+      return vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : 0;
+    });
+  });
+
+  echarts.init(document.getElementById('chart-radar-avg'), null, {renderer:'canvas'}).setOption({
+    tooltip: {
+      confine: true,
+      trigger: 'item',
+      formatter: function(param) {
+        var vals = param.value || [];
+        var html = '<b style="font-size:13px">' + param.name + '</b><table style="margin-top:4px;border-collapse:collapse;font-size:11px">';
+        for (var i = 0; i < names.length; i += 2) {
+          html += '<tr><td style="padding:1px 8px 1px 0;color:#8899aa">' + (labels[names[i]]||names[i]) + '</td><td style="padding:1px 12px 1px 0;font-weight:600">' + (vals[i]||0).toFixed(2) + '</td>';
+          if (i+1 < names.length) {
+            html += '<td style="padding:1px 8px 1px 0;color:#8899aa">' + (labels[names[i+1]]||names[i+1]) + '</td><td style="padding:1px 0;font-weight:600">' + (vals[i+1]||0).toFixed(2) + '</td>';
+          }
+          html += '</tr>';
+        }
+        return html + '</table>';
+      },
+    },
+    legend: { right: 10, top: 'middle', orient: 'vertical', data: ['低风险','中风险','高风险'], textStyle: { color: '#8899aa', fontSize: 11 } },
+    radar: {
+      indicator: names.map(k => ({ name: labels[k]||k, max: 1 })),
+      center: ['42%', '50%'],
+      radius: '58%',
+      axisName: { color: '#8899aa', fontSize: 9 },
+      splitArea: { areaStyle: { color: ['rgba(59,130,246,.02)','rgba(59,130,246,.05)'] } },
+      splitLine: { lineStyle: { color: '#243044' } },
+      axisLine: { lineStyle: { color: '#2d3b50' } },
+    },
+    series: [{
+      type: 'radar',
+      data: [
+        { value: avgByLevel.LOW, name: '低风险', areaStyle: { color: 'rgba(34,197,94,.15)' }, lineStyle: { color: '#22c55e' }, itemStyle: { color: '#22c55e' } },
+        { value: avgByLevel.MEDIUM, name: '中风险', areaStyle: { color: 'rgba(234,179,8,.1)' }, lineStyle: { color: '#eab308' }, itemStyle: { color: '#eab308' } },
+        { value: avgByLevel.HIGH, name: '高风险', areaStyle: { color: 'rgba(239,68,68,.1)' }, lineStyle: { color: '#ef4444' }, itemStyle: { color: '#ef4444' } },
+      ]
+    }]
+  });
+
+  // Feature distribution selector
+  const select = document.getElementById('feature-select');
+  select.innerHTML = names.map(k => `<option value="${k}">${labels[k]||k}</option>`).join('');
+  select.addEventListener('change', () => renderFeatureDist(select.value, labels));
+  renderFeatureDist(names[0], labels);
+}
+
+function renderFeatureDist(feat, labels) {
+  const groups = { LOW: [], MEDIUM: [], HIGH: [] };
+  allUsers.forEach(u => {
+    const v = u.features[feat] || 0;
+    groups[u.hybrid_level].push(v);
+  });
+
+  // Create histogram bins
+  const allVals = allUsers.map(u => u.features[feat] || 0);
+  const min = Math.min(...allVals), max = Math.max(...allVals);
+  const binCount = 15;
+  const binWidth = (max - min) / binCount || 1;
+  const bins = [];
+  for (let i = 0; i < binCount; i++) bins.push(+(min + i * binWidth).toFixed(2));
+
+  const seriesData = {};
+  ['LOW','MEDIUM','HIGH'].forEach(lv => {
+    seriesData[lv] = new Array(binCount).fill(0);
+    groups[lv].forEach(v => {
+      const idx = Math.min(Math.floor((v - min) / binWidth), binCount - 1);
+      if (idx >= 0) seriesData[lv][idx]++;
+    });
+  });
+
+  echarts.init(document.getElementById('chart-feature-dist'), null, {renderer:'canvas'}).setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['低风险','中风险','高风险'], textStyle: { color: '#8899aa' } },
+    xAxis: { type: 'category', data: bins.map(b => b.toFixed(1)), axisLabel: { color: '#8899aa', rotate: 45, fontSize: 10 } },
+    yAxis: { type: 'value', axisLabel: { color: '#8899aa' }, splitLine: { lineStyle: { color: '#243044' } } },
+    series: [
+      { name: '低风险', type: 'bar', stack: 'total', data: seriesData.LOW, itemStyle: { color: '#22c55e' } },
+      { name: '中风险', type: 'bar', stack: 'total', data: seriesData.MEDIUM, itemStyle: { color: '#eab308' } },
+      { name: '高风险', type: 'bar', stack: 'total', data: seriesData.HIGH, itemStyle: { color: '#ef4444' } },
+    ]
+  });
+}
+
+// ── Auto-load if data exists ──────────────────────────────
+(async () => {
+  try {
+    const res = await fetch('/api/overview');
+    const data = await res.json();
+    if (!data.empty) {
+      await loadAllData();
+    }
+  } catch (e) { /* no data yet */ }
+})();
+</script>
+</body>
+</html>
