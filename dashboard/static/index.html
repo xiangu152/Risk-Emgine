@@ -122,15 +122,21 @@ tr:hover td{background:var(--bg-elevated);color:var(--text-primary)}
 .upload-zone input{display:none}
 
 /* ═══ User Detail ═════════════════════════════════════════ */
-.detail-header{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap}
-.detail-info{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:20px;min-width:280px;flex:1}
-.detail-info h3{font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-.02em}
-.detail-info .meta{color:var(--text-tertiary);font-size:12px;margin-bottom:16px;display:flex;align-items:center;gap:6px}
-.detail-info .meta .sep{color:var(--border-strong)}
-.detail-info .scores{display:flex;gap:20px}
-.detail-info .score-item{text-align:center;padding:10px 16px;background:var(--bg-elevated);border-radius:var(--r-md);min-width:80px}
-.detail-info .score-item .val{font-size:22px;font-weight:800;letter-spacing:-.03em}
-.detail-info .score-item .lbl{font-size:10px;color:var(--text-tertiary);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.detail-header{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:20px}
+.detail-info{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:20px 24px}
+.detail-info .info-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.detail-info .info-left{display:flex;align-items:center;gap:14px}
+.detail-info .avatar{width:44px;height:44px;border-radius:var(--r-md);background:linear-gradient(135deg,var(--accent),#818cf8);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
+.detail-info .info-name h3{font-size:17px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.detail-info .info-name .account-id{font-size:12px;color:var(--text-disabled);font-family:'SF Mono','Cascadia Code',monospace}
+.detail-info .meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.detail-info .meta-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border-subtle)}
+.detail-info .meta-tag svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none}
+.detail-info .scores{display:flex;gap:10px;margin-top:16px}
+.detail-info .score-item{flex:1;text-align:center;padding:12px 8px;background:var(--bg-elevated);border-radius:var(--r-md);border:1px solid var(--border-subtle);transition:border-color var(--t-fast)}
+.detail-info .score-item:hover{border-color:var(--border-default)}
+.detail-info .score-item .val{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.detail-info .score-item .lbl{font-size:10px;color:var(--text-disabled);margin-top:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--r-md);color:var(--text-secondary);cursor:pointer;font-size:12px;font-weight:500;margin-bottom:16px;transition:all var(--t-fast)}
 .back-btn:hover{background:var(--bg-overlay);color:var(--text-primary);border-color:var(--border-strong)}
 .back-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
@@ -158,6 +164,8 @@ tr:hover td{background:var(--bg-elevated);color:var(--text-primary)}
 .search-bar input,.search-bar select{flex:1;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--r-md);color:var(--text-primary);font-size:12px;outline:none;transition:border-color var(--t-fast)}
 .search-bar input:focus,.search-bar select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted)}
 .search-bar input::placeholder{color:var(--text-disabled)}
+.search-bar select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+.search-bar select option{background:var(--bg-elevated);color:var(--text-primary)}
 
 /* ═══ Empty / Loading ═════════════════════════════════════ */
 .empty-state{text-align:center;padding:80px 20px;color:var(--text-tertiary)}
@@ -565,16 +573,31 @@ function renderDetail(user) {
   const lc = user.hybrid_level.toLowerCase();
   const labelMap = { 0: '正常', 1: '可疑', 2: '欺诈' };
 
+  const avatarLetter = user.account_name ? user.account_name.charAt(0) : '?';
   container.innerHTML = `
     <div class="detail-header">
       <div class="detail-info">
-        <h3>${user.account_name} <span style="color:var(--text-tertiary);font-size:13px;font-weight:400">${user.account_id}</span></h3>
-        <div class="meta">${user.region} <span class="sep">·</span> 标签: ${labelMap[user.label] ?? user.label} <span class="sep">·</span> ${user.tx_count}笔交易 <span class="sep">·</span> ${user.fired_count}条规则命中</div>
+        <div class="info-top">
+          <div class="info-left">
+            <div class="avatar">${avatarLetter}</div>
+            <div class="info-name">
+              <h3>${user.account_name}</h3>
+              <div class="account-id">${user.account_id}</div>
+            </div>
+          </div>
+          <span class="badge badge-${lc}">${LEVEL_LABELS[user.hybrid_level]}</span>
+        </div>
+        <div class="meta">
+          <span class="meta-tag"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${user.region}</span>
+          <span class="meta-tag"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${labelMap[user.label] ?? user.label}</span>
+          <span class="meta-tag"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${user.tx_count}笔交易</span>
+          <span class="meta-tag" style="${user.fired_count > 0 ? 'color:var(--danger);border-color:var(--danger-muted);background:var(--danger-muted)' : ''}"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>${user.fired_count}条规则命中</span>
+        </div>
         <div class="scores">
           <div class="score-item"><div class="val" style="color:${LEVEL_COLORS[user.rule_level]}">${user.rule_score.toFixed(1)}</div><div class="lbl">规则分</div></div>
           <div class="score-item"><div class="val" style="color:var(--accent-hover)">${user.ml_score.toFixed(1)}</div><div class="lbl">ML分</div></div>
           <div class="score-item"><div class="val" style="color:${LEVEL_COLORS[user.hybrid_level]}">${user.hybrid_score.toFixed(1)}</div><div class="lbl">混合分</div></div>
-          <div class="score-item"><div class="val"><span class="badge badge-${lc}">${LEVEL_LABELS[user.hybrid_level]}</span></div><div class="lbl">风险等级</div></div>
+          <div class="score-item"><div class="val" style="font-size:14px"><span class="badge badge-${lc}" style="font-size:11px">${LEVEL_LABELS[user.hybrid_level]}</span></div><div class="lbl">风险等级</div></div>
         </div>
       </div>
     </div>
