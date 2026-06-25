@@ -16,6 +16,9 @@ dependencies = [
     "shap>=0.52.0",
     "tabpfn>=8.0.8",
     "xgboost>=3.3.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "python-multipart>=0.0.18",
 ]
 
 [dependency-groups]
