@@ -4,24 +4,27 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
-    "hyperopt>=0.2.7",
-    "imbalanced-learn>=0.14.2",
-    "joblib>=1.5.3",
-    "kditransform>=1.2.0",
-    "numpy>=2.0.0",
-    "optuna>=4.9.0",
-    "pandas>=2.3.3",
-    "scikit-learn>=1.9.0",
-    "scipy>=1.17.0",
-    "shap>=0.52.0",
-    "tabpfn>=8.0.8",
-    "xgboost>=3.3.0",
     "fastapi>=0.115.0",
     "uvicorn>=0.34.0",
     "python-multipart>=0.0.18",
+    "numpy>=2.0.0",
+    "pandas>=2.3.3",
+    "joblib>=1.5.3",
+    "scikit-learn>=1.9.0",
 ]
 
 [dependency-groups]
+ml = [
+    "scikit-learn>=1.9.0",
+    "scipy>=1.17.0",
+    "xgboost>=3.3.0",
+    "shap>=0.52.0",
+    "hyperopt>=0.2.7",
+    "imbalanced-learn>=0.14.2",
+    "optuna>=4.9.0",
+    "tabpfn>=8.0.8",
+    "kditransform>=1.2.0",
+]
 dev = [
     "ipykernel>=7.3.0",
     "jupyter>=1.1.1",

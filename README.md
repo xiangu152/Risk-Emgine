@@ -100,6 +100,15 @@ uv run uvicorn server:app --reload --port 8000
 # 打开 http://localhost:8000
 ```
 
+### Docker 部署
+
+```bash
+# 一键启动
+docker compose up -d
+
+# 打开 http://localhost:8000
+```
+
 ---
 
 ## 特征体系（23 维）
@@ -208,10 +217,6 @@ Risk-Emgine/
 ├── scoring_model.py           # 规则引擎 + ML 混合评分
 ├── train_ml_model.py          # ML 模型训练管线
 ├── evaluate.py                # 统一评估 CLI
-├── run_eval.py                # Per-account 规则 vs 混合对比
-├── benchmark.py               # 性能基准测试
-├── optimize_thresholds.py     # 阈值优化
-├── shap_analysis.py           # SHAP 特征重要性分析
 │
 ├── models/                    # 预训练模型（开箱即用）
 │   ├── calibrated_rf.pkl      # ← 默认模型
@@ -219,6 +224,14 @@ Risk-Emgine/
 │   ├── ensemble.pkl           # 23 特征 Ensemble
 │   ├── scaler.pkl             # StandardScaler
 │   └── rfecv_selector.pkl     # 特征选择器
+│
+├── scripts/                   # 开发工具脚本
+│   ├── benchmark.py           # 性能基准测试
+│   ├── calibrate_thresholds.py # 阈值校准
+│   ├── optimize_thresholds.py # 阈值优化
+│   ├── shap_analysis.py       # SHAP 特征重要性分析
+│   ├── run_eval.py            # Per-account 评估对比
+│   └── generate_behavior_data.py # 测试数据生成
 │
 ├── dashboard/                 # Web 可视化面板
 │   ├── server.py              # FastAPI 后端 (6 个 API)
@@ -269,6 +282,25 @@ uv run python evaluate.py all           # 全部评估，输出 HTML/JSON
 
 # 运行测试
 uv run pytest tests/ -v
+```
+
+### 开发工具脚本
+
+`scripts/` 目录包含开发和分析工具：
+
+```bash
+# 性能基准测试
+uv run python scripts/benchmark.py
+
+# 阈值校准与优化
+uv run python scripts/calibrate_thresholds.py
+uv run python scripts/optimize_thresholds.py
+
+# SHAP 特征分析
+uv run python scripts/shap_analysis.py
+
+# 模型评估对比
+uv run python scripts/run_eval.py
 ```
 
 ---

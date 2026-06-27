@@ -4,7 +4,7 @@
 用法: uv run python run_eval.py
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ from scipy.stats import spearmanr
 from feature_extraction import extract_features_per_user
 from scoring_model import score_risk, score_risk_hybrid
 
-DATA_DIR = "data/splits"
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "splits")
 SPLITS = ["train", "val", "test"]
 LEVEL_CN = {0: "低风险", 1: "中风险", 2: "高风险"}
 

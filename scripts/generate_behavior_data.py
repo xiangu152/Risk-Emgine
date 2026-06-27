@@ -215,10 +215,13 @@ rows.append(["u_1014", "login", "d_607", "10.0.100.1", "2024-01-15T18:00:00Z", "
 rows.append(["u_1014", "transaction", "d_607", "10.0.100.1", "2024-01-15T19:00:00Z", "150.00"])
 rows.append(["u_1014", "login", "d_607", "10.0.100.1", "2024-01-15T21:00:00Z", ""])
 
-os.makedirs("data", exist_ok=True)
-with open("data/behavior_logs.csv", "w", newline="") as f:
+BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
+output_dir = os.path.join(BASE_DIR, "data")
+os.makedirs(output_dir, exist_ok=True)
+output_file = os.path.join(output_dir, "behavior_logs.csv")
+with open(output_file, "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["user_id", "event_type", "device_id", "ip_address", "timestamp", "amount"])
     writer.writerows(rows)
 
-print(f"Generated {len(rows)} rows in data/behavior_logs.csv")
+print(f"Generated {len(rows)} rows in {output_file}")

@@ -1,4 +1,8 @@
 """成本感知阈值优化 — 用代价矩阵搜索最优LOW/HIGH边界 (已优化为29/70)"""
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 import numpy as np, pandas as pd
 from sklearn.metrics import cohen_kappa_score
 from feature_extraction import _extract_features_per_user_from_df, _load_and_validate
@@ -12,8 +16,10 @@ COST = {
     (1,2):5, (2,1):1,
 }
 
+BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
+
 for name in ["val", "test"]:
-    df, ha = _load_and_validate(f"data/splits/{name}.csv")
+    df, ha = _load_and_validate(os.path.join(BASE_DIR, "data", "splits", f"{name}.csv"))
     pu = _extract_features_per_user_from_df(df, ha)
     labels = df.groupby("user_id")["label"].first()
     uids = sorted(pu.keys())

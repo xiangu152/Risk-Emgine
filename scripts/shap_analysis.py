@@ -1,4 +1,8 @@
 """SHAP 分析 — 验证 7 特征贡献度，科学淘汰/增强特征"""
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -6,8 +10,9 @@ matplotlib.use("Agg")  # 无 GUI 后端的 SVG 输出
 import matplotlib.pyplot as plt
 import shap
 import joblib
-import os
 from feature_extraction import extract_features_per_user
+
+BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 
 FEATURE_NAMES = [
     "device_reuse_ratio", "ip_change_freq", "tx_freq",
@@ -21,13 +26,13 @@ FEATURE_LABELS = [
 
 # ── 1. 加载模型和数据 ──────────────────────────────
 print("加载模型...")
-scaler = joblib.load("models/scaler.pkl")
-model = joblib.load("models/calibrated_rf.pkl")
+scaler = joblib.load(os.path.join(BASE_DIR, "models", "scaler.pkl"))
+model = joblib.load(os.path.join(BASE_DIR, "models", "calibrated_rf.pkl"))
 
 print("提取特征...")
 def load_set(name):
-    df = pd.read_csv(f"data/splits/{name}.csv")
-    tmp = f"data/splits/_tmp_shap_{name}.csv"
+    df = pd.read_csv(os.path.join(BASE_DIR, "data", "splits", f"{name}.csv"))
+    tmp = os.path.join(BASE_DIR, "data", "splits", f"_tmp_shap_{name}.csv")
     df.to_csv(tmp, index=False)
     per_user = extract_features_per_user(tmp)
     labels = df.groupby("user_id")["label"].first()
@@ -107,7 +112,8 @@ for i, name in enumerate(FEATURE_LABELS):
     print(f"  {name:<14} | 推高:{pos_ratio:.0%} (avg SHAP={mean_pos:+.3f}) | 降低:{1-pos_ratio:.0%} (avg SHAP={mean_neg:+.3f})")
 
 # ── 6. 可视化 (SVG) ──────────────────────────────
-os.makedirs("data/model", exist_ok=True)
+output_dir = os.path.join(BASE_DIR, "data", "model")
+os.makedirs(output_dir, exist_ok=True)
 print("\n生成 SHAP 可视化...")
 
 # 6a. 特征重要性 summary bar
@@ -116,9 +122,9 @@ shap.summary_plot(shap_class2, X_all_scaled, feature_names=FEATURE_NAMES,
                   plot_type="bar", show=False, max_display=7)
 plt.title("SHAP Feature Importance (label=HIGH)")
 plt.tight_layout()
-plt.savefig("data/model/shap_importance_bar.svg", dpi=120, bbox_inches="tight")
+plt.savefig(os.path.join(output_dir, "shap_importance_bar.svg"), dpi=120, bbox_inches="tight")
 plt.close()
-print("  → data/model/shap_importance_bar.svg")
+print(f"  → {os.path.join(output_dir, 'shap_importance_bar.svg')}")
 
 # 6b. Beeswarm summary plot
 plt.figure(figsize=(10, 5))
@@ -126,9 +132,9 @@ shap.summary_plot(shap_class2, X_all_scaled, feature_names=FEATURE_NAMES,
                   show=False, max_display=7)
 plt.title("SHAP Beeswarm (label=HIGH)")
 plt.tight_layout()
-plt.savefig("data/model/shap_beeswarm.svg", dpi=120, bbox_inches="tight")
+plt.savefig(os.path.join(output_dir, "shap_beeswarm.svg"), dpi=120, bbox_inches="tight")
 plt.close()
-print("  → data/model/shap_beeswarm.svg")
+print(f"  → {os.path.join(output_dir, 'shap_beeswarm.svg')}")
 
 # 6c. 热力图 — shap 0.52+ 需要 Explanation 对象
 try:
@@ -137,9 +143,9 @@ try:
                         max_display=7, show=False)
     plt.title("SHAP Heatmap (label=HIGH)")
     plt.tight_layout()
-    plt.savefig("data/model/shap_heatmap.svg", dpi=120, bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, "shap_heatmap.svg"), dpi=120, bbox_inches="tight")
     plt.close()
-    print("  → data/model/shap_heatmap.svg")
+    print(f"  → {os.path.join(output_dir, 'shap_heatmap.svg')}")
 except Exception as e:
     print(f"  ⚠ heatmap 跳过: {e}")
 
@@ -160,9 +166,9 @@ for i, ax_idx in enumerate(active_features):
         ax.set_ylabel("SHAP value")
     ax.set_title(f"{FEATURE_NAMES[ax_idx]} — Impact on HIGH risk")
 plt.tight_layout()
-plt.savefig("data/model/shap_dependence.svg", dpi=120, bbox_inches="tight")
+plt.savefig(os.path.join(output_dir, "shap_dependence.svg"), dpi=120, bbox_inches="tight")
 plt.close()
-print("  → data/model/shap_dependence.svg")
+print(f"  → {os.path.join(output_dir, 'shap_dependence.svg')}")
 
 # ── 8. 建议 ───────────────────────────────────────
 print("\n" + "=" * 70)

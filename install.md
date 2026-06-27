@@ -100,7 +100,7 @@ uv sync
 
 这会自动：
 - 创建 `.venv` 虚拟环境（使用系统 Python 3.12+）
-- 安装 `pyproject.toml` 中声明的所有运行时和开发依赖（约 170 个包）
+- 安装 `pyproject.toml` 中声明的所有运行时和开发依赖
 - 生成 `uv.lock` 锁文件
 
 ### 3. 准备数据文件
@@ -237,18 +237,33 @@ macOS 上 `python` 可能不在 PATH 中。所有命令统一用 `uv run python`
 
 ---
 
-## 依赖清单（主要）
+## 依赖清单
+
+### 生产依赖（Docker 镜像包含）
 
 | 包 | 用途 |
 |----|------|
-| numpy, pandas, scipy | 数值计算 |
-| scikit-learn | ML 模型、预处理 |
+| fastapi, uvicorn | Web 仪表盘 |
+| python-multipart | 文件上传 |
+| numpy, pandas | 数值计算 |
+| joblib | 模型序列化 |
+| scikit-learn | ML 模型推理 |
+
+### ML 训练依赖（仅本地开发）
+
+| 包 | 用途 |
+|----|------|
+| scipy | 科学计算 |
 | xgboost | 梯度提升 |
 | imbalanced-learn | SMOTE 过采样 |
-| joblib | 模型序列化 |
 | shap | 特征重要性分析 |
-| optuna | 超参优化 |
+| optuna, hyperopt | 超参优化 |
 | tabpfn | 表格数据基础模型（可选） |
-| fastapi, uvicorn | Web 仪表盘 |
-| httpx | LLM API 客户端（data_creater） |
+
+### 开发依赖
+
+| 包 | 用途 |
+|----|------|
 | pytest | 测试框架 |
+| matplotlib | 可视化 |
+| jupyter, ipykernel | Notebook |
