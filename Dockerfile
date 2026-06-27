@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # 先复制依赖声明，利用 Docker 缓存
-COPY pyproject.toml ./
-RUN uv sync --no-dev --frozen 2>/dev/null || uv sync --no-dev
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-dev --frozen
 
 # 复制项目代码和模型
 COPY . .
@@ -23,4 +23,4 @@ RUN mkdir -p data
 EXPOSE 8000
 
 # 默认启动 Web 仪表盘
-CMD ["uv", "run", "uvicorn", "dashboard.server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--no-sync", "uvicorn", "dashboard.server:app", "--host", "0.0.0.0", "--port", "8000"]
