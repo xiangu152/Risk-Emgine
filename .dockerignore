@@ -10,5 +10,4 @@ ppt/
 notebooks/
 data/splits/
 data/evaluation/
-uv.lock
 install.md
