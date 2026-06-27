@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+.omc/
+.pytest_cache/
+*.pkl
+!models/*.pkl
+ppt/
+notebooks/
+data/splits/
+data/evaluation/
+uv.lock
+install.md

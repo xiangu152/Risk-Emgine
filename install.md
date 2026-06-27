@@ -4,7 +4,67 @@
 
 ---
 
-## 前置条件
+## 🐳 Docker 一键部署（推荐）
+
+最快上手方式，无需手动安装 Python 和依赖。
+
+### 前置条件
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| Docker | ≥ 20.10 | [安装 Docker](https://docs.docker.com/get-docker/) |
+| Docker Compose | ≥ 2.0 | Docker Desktop 自带 |
+
+### 一键启动
+
+```bash
+git clone <repo-url>
+cd Risk-Emgine
+docker compose up -d
+```
+
+浏览器打开 **http://localhost:8000** 即可使用 Web 仪表盘。
+
+### 常用命令
+
+```bash
+# 后台启动
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重新构建（代码更新后）
+docker compose up -d --build
+```
+
+### 挂载数据
+
+`data/` 目录已挂载到容器内，放入 CSV 文件即可在 Web 界面上传：
+
+```bash
+# 将数据放入 data/ 目录
+cp your_data.csv data/
+# 然后在 Web 界面上传即可
+```
+
+### Docker 运行 CLI
+
+```bash
+# 进入容器执行命令
+docker compose exec risk-engine uv run python main.py --per-user data/your_data.csv
+```
+
+---
+
+## 手动安装
+
+如需本地开发或无法使用 Docker，按以下步骤操作。
+
+### 前置条件
 
 | 依赖 | 版本 | 说明 |
 |------|------|------|

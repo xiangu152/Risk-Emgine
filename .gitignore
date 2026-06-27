@@ -24,8 +24,6 @@ calibrate_thresholds.py
 data_quality_report.py
 benchmark.py
 
-# Data & model files (generated, not committed)
-data/
 
 # Office / doc files (not code)
 *.docx
@@ -34,3 +32,4 @@ CLAUDE.md
 
 # Generated model files (not the committed defaults in models/)
 data/model/*.pkl
+ppt
