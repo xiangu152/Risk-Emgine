@@ -111,6 +111,67 @@ docker compose up -d
 
 ---
 
+## CI/CD
+
+项目使用 GitHub Actions 实现持续集成与自动发布。
+
+### 持续集成（test.yml）
+
+每次 push 或 PR 到 `dev` / `main` 分支时自动运行：
+
+```
+push/PR → 安装 uv + Python 3.12 → 安装依赖 → pytest 测试（52 cases）
+```
+
+测试通过 ✅ 才能合并 PR，失败 ❌ 会阻止合并。
+
+### 自动发布（release.yml）
+
+推送 `v*` 格式的 tag 时触发：
+
+```
+git tag v1.0.0 && git push origin v1.0.0
+        │
+        ▼
+    运行 pytest 测试
+        │ 通过
+        ▼
+    构建 Docker 镜像 → 推送到 ghcr.io
+        │
+        ▼
+    创建 GitHub Release（自动生成 changelog）
+```
+
+**镜像标签策略：** 推送 `v1.2.3` 会自动生成 4 个标签：
+
+| 标签 | 说明 |
+|------|------|
+| `1.2.3` | 精确版本 |
+| `1.2` | 次版本（兼容性更新） |
+| `1` | 主版本（重大更新） |
+| `latest` | 最新稳定版 |
+
+**使用发布镜像：**
+
+```bash
+# 拉取指定版本
+docker pull ghcr.io/xiangu152/risk-emgine:1.0.0
+
+# 或在 docker-compose.yml 中指定
+services:
+  risk-engine:
+    image: ghcr.io/xiangu152/risk-emgine:1.0.0
+```
+
+### 分支策略
+
+| 分支 | 用途 |
+|------|------|
+| `dev` | 开发分支，日常开发和 PR 合入 |
+| `main` | 稳定分支，从 dev 合并，用于发版 |
+
+---
+
 ## 特征体系（23 维）
 
 ### 基础特征（7 个，v1.0）
