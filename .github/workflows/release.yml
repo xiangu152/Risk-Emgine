@@ -42,15 +42,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
+      - name: Extract version and image name
         id: version
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           MAJOR=$(echo $VERSION | cut -d. -f1)
           MINOR=$(echo $VERSION | cut -d. -f1-2)
+          IMAGE=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major=$MAJOR" >> $GITHUB_OUTPUT
           echo "minor=$MINOR" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -58,10 +60,10 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.minor }}
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.major }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ steps.version.outputs.image }}:${{ steps.version.outputs.minor }}
+            ghcr.io/${{ steps.version.outputs.image }}:${{ steps.version.outputs.major }}
+            ghcr.io/${{ steps.version.outputs.image }}:latest
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -71,10 +73,10 @@ jobs:
             ## Docker 镜像
 
             ```bash
-            docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            docker pull ghcr.io/${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
             ```
 
             或在 `docker-compose.yml` 中使用：
             ```yaml
-            image: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            image: ghcr.io/${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
             ```
